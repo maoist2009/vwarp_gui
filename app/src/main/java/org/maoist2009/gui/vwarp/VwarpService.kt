@@ -56,7 +56,6 @@ class VwarpService : Service() {
 
         val mode = intent?.getIntExtra("mode", 0) ?: 0
 
-        // 先停止同名实例
         stopInstance(instance)
         Thread.sleep(200)
 
@@ -108,7 +107,6 @@ class VwarpService : Service() {
                 val vwarpPath = getExecutablePath()
                 if (vwarpPath == null) {
                     sendLog(instance, "错误: 找不到 vwarp 二进制文件")
-                    sendLog(instance, "请将 libvwarp.so 放入 jniLibs/arm64-v8a/ 目录")
                     return@Thread
                 }
 
@@ -126,7 +124,7 @@ class VwarpService : Service() {
                 processes[instance] = process
                 runningFlags[instance] = true
 
-                sendLog(instance, "进程已启动 PID: ${getProcessId(process)}")
+                sendLog(instance, "进程已启动")
 
                 val reader = BufferedReader(InputStreamReader(process.inputStream))
                 var line: String?
@@ -160,16 +158,6 @@ class VwarpService : Service() {
         return null
     }
 
-    private fun getProcessId(process: java.lang.Process): Int {
-        return try {
-            val field = process.javaClass.getDeclaredField("pid")
-            field.isAccessible = true
-            field.getInt(process)
-        } catch (e: Exception) {
-            -1
-        }
-    }
-
     private fun stopInstance(instance: String) {
         runningFlags[instance] = false
         processes[instance]?.let { process ->
@@ -193,11 +181,14 @@ class VwarpService : Service() {
         sendLog("system", "所有实例已停止")
     }
 
+    // 关键修复：添加 setPackage 确保广播能被 NOT_EXPORTED 的接收器收到
     private fun sendLog(instance: String, line: String) {
-        sendBroadcast(Intent(LOG_ACTION).apply {
+        val intent = Intent(LOG_ACTION).apply {
+            setPackage(packageName)  // 必须设置包名！
             putExtra("line", line)
             putExtra("instance", instance)
-        })
+        }
+        sendBroadcast(intent)
     }
 
     private fun acquireWakeLock() {

@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -28,11 +29,14 @@ class MainActivity : AppCompatActivity() {
     private val instanceList = mutableListOf<String>()
     private val logBuffer = StringBuilder()
 
+    companion object {
+        const val HELP_URL = "https://github.com/bepass-org/warp-plus/blob/main/README.md"
+    }
+
     private val logReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val line = intent?.getStringExtra("line") ?: return
             val instance = intent.getStringExtra("instance") ?: "sys"
-
             val logLine = "[$instance] $line"
             logBuffer.append(logLine).append("\n")
 
@@ -61,23 +65,36 @@ class MainActivity : AppCompatActivity() {
         prefs = getSharedPreferences("vwarp_prefs", MODE_PRIVATE)
 
         setupListeners()
-        restoreState()
         loadInstances()
+        restoreState()
         requestPermissions()
     }
 
     private fun setupListeners() {
         binding.btnStart.setOnClickListener { startVwarp() }
-        binding.btnStop.setOnClickListener { stopCurrentInstance() }
+        binding.btnStop.setOnClickListener { stopVwarp(getCurrentInstance()) }
         binding.btnStopAll.setOnClickListener { stopVwarp("__ALL__") }
         binding.btnClearLog.setOnClickListener { clearLog() }
         binding.btnSaveLog.setOnClickListener { saveLog() }
         binding.btnNewConfig.setOnClickListener { startActivity(Intent(this, ConfigEditorActivity::class.java)) }
-        binding.btnEditConfig.setOnClickListener { editConfig() }
-        binding.btnAddInstance.setOnClickListener { addInstance() }
+        binding.btnDeleteInstance.setOnClickListener { deleteCurrentInstance() }
+
+        // 帮助按钮 - 打开浏览器
+        binding.btnHelp.setOnClickListener { openHelpUrl() }
+
+        binding.btnEditConfig.setOnClickListener {
+            val selected = binding.spinnerConfig.selectedItem?.toString()
+            if (selected != null && selected != "(无配置)") {
+                startActivity(Intent(this, ConfigEditorActivity::class.java).apply {
+                    putExtra("config_name", selected)
+                })
+            } else {
+                startActivity(Intent(this, ConfigEditorActivity::class.java))
+            }
+        }
 
         binding.rgMode.setOnCheckedChangeListener { _, id ->
-            val mode = when(id) {
+            val mode = when (id) {
                 R.id.rb_simple -> 0
                 R.id.rb_cmdline -> 1
                 else -> 2
@@ -86,24 +103,35 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putInt("mode", mode).apply()
         }
 
+        // 配置选择时自动填充实例名
         binding.spinnerConfig.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
                 val name = configList.getOrNull(pos)
                 if (name != null && name != "(无配置)") {
                     binding.etInstance.setText(name)
                 }
             }
-            override fun onNothingSelected(p: AdapterView<*>?) {}
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
         }
 
+        // 实例下拉选择
         binding.spinnerInstance.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
                 val name = instanceList.getOrNull(pos)
                 if (name != null) {
                     binding.etInstance.setText(name)
                 }
             }
-            override fun onNothingSelected(p: AdapterView<*>?) {}
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
+        }
+    }
+
+    private fun openHelpUrl() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(HELP_URL))
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "无法打开浏览器", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -116,7 +144,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun restoreState() {
         val mode = prefs.getInt("mode", 0)
-        when(mode) {
+        when (mode) {
             0 -> binding.rbSimple.isChecked = true
             1 -> binding.rbCmdline.isChecked = true
             2 -> binding.rbConfig.isChecked = true
@@ -128,7 +156,9 @@ class MainActivity : AppCompatActivity() {
         val dir = File(filesDir, "configs")
         if (!dir.exists()) dir.mkdirs()
         configList.clear()
-        dir.listFiles()?.forEach { configList.add(it.nameWithoutExtension) }
+        dir.listFiles()?.filter { it.extension == "json" }?.forEach {
+            configList.add(it.nameWithoutExtension)
+        }
         if (configList.isEmpty()) configList.add("(无配置)")
         binding.spinnerConfig.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, configList)
     }
@@ -136,12 +166,11 @@ class MainActivity : AppCompatActivity() {
     private fun loadInstances() {
         val saved = prefs.getStringSet("instances", setOf("default")) ?: setOf("default")
         instanceList.clear()
-        instanceList.addAll(saved)
+        instanceList.addAll(saved.sorted())
         if (instanceList.isEmpty()) instanceList.add("default")
         binding.spinnerInstance.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, instanceList)
 
-        // 选择上次使用的实例
-        val lastInstance = prefs.getString("last_instance", "default")
+        val lastInstance = prefs.getString("last_instance", "default") ?: "default"
         val idx = instanceList.indexOf(lastInstance)
         if (idx >= 0) binding.spinnerInstance.setSelection(idx)
     }
@@ -150,49 +179,45 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putStringSet("instances", instanceList.toSet()).apply()
     }
 
-    private fun addInstance() {
-        val name = binding.etInstance.text.toString().trim()
-        if (name.isEmpty()) {
-            Toast.makeText(this, "请输入实例名", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (!instanceList.contains(name)) {
-            instanceList.add(name)
-            saveInstances()
-            (binding.spinnerInstance.adapter as ArrayAdapter<*>).notifyDataSetChanged()
-            binding.spinnerInstance.setSelection(instanceList.indexOf(name))
-        }
-    }
-
-    private fun editConfig() {
-        val selected = binding.spinnerConfig.selectedItem?.toString()
-        if (selected != null && selected != "(无配置)") {
-            val intent = Intent(this, ConfigEditorActivity::class.java)
-            intent.putExtra("config_name", selected)
-            startActivity(intent)
-        } else {
-            startActivity(Intent(this, ConfigEditorActivity::class.java))
-        }
-    }
-
     private fun getCurrentInstance(): String {
         return binding.etInstance.text.toString().trim().ifEmpty { "default" }
     }
 
-    private fun startVwarp() {
-        val instance = getCurrentInstance()
-
-        // 保存当前实例
-        if (!instanceList.contains(instance)) {
-            instanceList.add(instance)
-            saveInstances()
-            (binding.spinnerInstance.adapter as ArrayAdapter<*>).notifyDataSetChanged()
+    private fun deleteCurrentInstance() {
+        val current = getCurrentInstance()
+        if (current == "default") {
+            Toast.makeText(this, "无法删除默认实例", Toast.LENGTH_SHORT).show()
+            return
         }
-        prefs.edit().putString("last_instance", instance).apply()
+
+        AlertDialog.Builder(this)
+            .setTitle("删除实例")
+            .setMessage("确定删除实例 \"$current\" 吗？")
+            .setPositiveButton("删除") { _, _ ->
+                instanceList.remove(current)
+                saveInstances()
+                loadInstances()
+                binding.etInstance.setText("default")
+                Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun startVwarp() {
+        val instanceName = getCurrentInstance()
+
+        // 自动保存新实例
+        if (!instanceList.contains(instanceName)) {
+            instanceList.add(instanceName)
+            saveInstances()
+            loadInstances()
+        }
+        prefs.edit().putString("last_instance", instanceName).apply()
 
         val intent = Intent(this, VwarpService::class.java).apply {
             putExtra("action", "start")
-            putExtra("instance", instance)
+            putExtra("instance", instanceName)
             putExtra("mode", prefs.getInt("mode", 0))
             putExtra("bind", binding.etBind.text.toString().trim())
             putExtra("endpoint", binding.etEndpoint.text.toString().trim())
@@ -207,19 +232,15 @@ class MainActivity : AppCompatActivity() {
             startService(intent)
         }
 
-        binding.tvStatus.text = "状态: 启动中... [$instance]"
-        binding.tvLog.append("--- 启动实例: $instance ---\n")
-    }
-
-    private fun stopCurrentInstance() {
-        val instance = getCurrentInstance()
-        stopVwarp(instance)
+        binding.tvStatus.text = "状态: 启动中... [$instanceName]"
+        binding.tvLog.append("--- 启动实例: $instanceName ---\n")
     }
 
     private fun stopVwarp(instance: String) {
-        val intent = Intent(this, VwarpService::class.java)
-        intent.putExtra("action", "stop")
-        intent.putExtra("instance", instance)
+        val intent = Intent(this, VwarpService::class.java).apply {
+            putExtra("action", "stop")
+            putExtra("instance", instance)
+        }
         startService(intent)
         Handler(Looper.getMainLooper()).postDelayed({ updateRunningUI() }, 500)
     }
@@ -273,7 +294,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "已保存到 Downloads", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -283,15 +304,18 @@ class MainActivity : AppCompatActivity() {
             try {
                 val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 File(dir, "vwarp_${System.currentTimeMillis()}.txt").writeText(logBuffer.toString())
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "已保存", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "已保存", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "错误: ${e.message}", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "错误: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
     private fun requestPermissions() {
-        // 电池优化
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         if (!pm.isIgnoringBatteryOptimizations(packageName)) {
             try {
@@ -301,7 +325,6 @@ class MainActivity : AppCompatActivity() {
             } catch (_: Exception) {}
         }
 
-        // 通知权限
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
@@ -311,8 +334,9 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         val filter = IntentFilter(VwarpService.LOG_ACTION)
+        // 修复：Android 13+ 必须指定 RECEIVER_NOT_EXPORTED
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(logReceiver, filter, RECEIVER_EXPORTED)
+            registerReceiver(logReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             registerReceiver(logReceiver, filter)
         }
@@ -321,7 +345,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        try { unregisterReceiver(logReceiver) } catch (_: Exception) {}
+        try {
+            unregisterReceiver(logReceiver)
+        } catch (_: Exception) {}
     }
 
     override fun onResume() {

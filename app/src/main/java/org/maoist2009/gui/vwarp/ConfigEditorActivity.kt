@@ -1,5 +1,6 @@
 package org.maoist2009.gui.vwarp
 
+import android.graphics.Color
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -34,6 +35,11 @@ class ConfigEditorActivity : AppCompatActivity() {
             title = "新建配置"
         }
 
+        // 强制浅色背景，确保任何模式下都能看清
+        binding.etConfigContent.setBackgroundColor(Color.parseColor("#FAFAFA"))
+        binding.etConfigContent.setTextColor(Color.parseColor("#212121"))
+        binding.etConfigContent.setHintTextColor(Color.parseColor("#757575"))
+
         binding.btnLoadTemplate.setOnClickListener {
             binding.etConfigContent.setText(defaultTemplate)
         }
@@ -58,11 +64,11 @@ class ConfigEditorActivity : AppCompatActivity() {
     private fun saveConfig() {
         val name = binding.etConfigName.text.toString().trim()
         if (name.isEmpty()) {
-            Toast.makeText(this, "请输入名称", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "请输入配置名称", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val safeName = name.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+        val safeName = name.replace(Regex("[^a-zA-Z0-9_\\-]"), "_")
         val content = binding.etConfigContent.text.toString()
 
         if (originalName != null && originalName != safeName) {
@@ -82,8 +88,8 @@ class ConfigEditorActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("删除")
-            .setMessage("确定删除 $name?")
+            .setTitle("删除配置")
+            .setMessage("确定要删除 $name 吗？")
             .setPositiveButton("删除") { _, _ ->
                 File(getConfigDir(), "$name.json").delete()
                 originalName?.let { File(getConfigDir(), "$it.json").delete() }
