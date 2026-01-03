@@ -38,31 +38,24 @@ class VwarpService : Service() {
         val instance = intent?.getStringExtra("instance") ?: "default"
 
         if (action == "stop") {
-            if (instance == "__ALL__") {
-                stopAllInstances()
-            } else {
-                stopInstance(instance)
-            }
+            if (instance == "__ALL__") stopAllInstances() else stopInstance(instance)
             if (processes.isEmpty()) stopSelf()
             return START_NOT_STICKY
         }
 
-        val notification = createNotification("Vwarp 正在运行")
+        val notification = createNotification("Vwarp 运行中")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFY_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForeground(NOTIFY_ID, notification)
         }
 
         val mode = intent?.getIntExtra("mode", 0) ?: 0
-
         stopInstance(instance)
         Thread.sleep(200)
 
         val args = buildArgs(intent, mode, instance)
-        if (args != null) {
-            startVwarpProcess(instance, args)
-        }
+        if (args != null) startVwarpProcess(instance, args)
 
         return START_STICKY
     }
@@ -74,25 +67,19 @@ class VwarpService : Service() {
                 val endpoint = intent?.getStringExtra("endpoint") ?: "162.159.198.2"
                 val proxy = intent?.getStringExtra("proxy")
                 mutableListOf("--masque", "--noize-preset", "light", "--bind", bind, "-e", endpoint).apply {
-                    if (!proxy.isNullOrEmpty()) {
-                        add("--proxy")
-                        add(proxy)
-                    }
+                    if (!proxy.isNullOrEmpty()) { add("--proxy"); add(proxy) }
                 }
             }
-            1 -> {
-                val cmdline = intent?.getStringExtra("cmdline") ?: ""
-                cmdline.split(Regex("\\s+")).filter { it.isNotEmpty() }
-            }
+            1 -> intent?.getStringExtra("cmdline")?.split(Regex("\\s+"))?.filter { it.isNotEmpty() }
             2 -> {
                 val name = intent?.getStringExtra("config_name")
-                if (name == null || name == "(无配置)") {
-                    sendLog(instance, "错误: 未选择配置文件")
+                if (name == null || name == "(无)") {
+                    sendLog(instance, "错误: 未选择配置")
                     return null
                 }
                 val file = File(File(filesDir, "configs"), "$name.json")
                 if (!file.exists()) {
-                    sendLog(instance, "错误: 配置文件不存在")
+                    sendLog(instance, "错误: 配置不存在")
                     return null
                 }
                 listOf("--config", file.absolutePath)
@@ -106,12 +93,11 @@ class VwarpService : Service() {
             try {
                 val vwarpPath = getExecutablePath()
                 if (vwarpPath == null) {
-                    sendLog(instance, "错误: 找不到 vwarp 二进制文件")
+                    sendLog(instance, "错误: 找不到二进制文件")
                     return@Thread
                 }
 
                 sendLog(instance, "二进制: $vwarpPath")
-
                 val cmd = mutableListOf(vwarpPath).apply { addAll(args) }
                 sendLog(instance, "命令: ${cmd.joinToString(" ")}")
 
@@ -129,14 +115,13 @@ class VwarpService : Service() {
                 val reader = BufferedReader(InputStreamReader(process.inputStream))
                 var line: String?
                 while (runningFlags[instance] == true) {
-                    line = reader.readLine()
-                    if (line == null) break
+                    line = reader.readLine() ?: break
                     sendLog(instance, line)
                 }
                 reader.close()
 
                 val exitCode = process.waitFor()
-                sendLog(instance, "进程退出 code=$exitCode")
+                sendLog(instance, "退出 code=$exitCode")
 
             } catch (e: Exception) {
                 sendLog(instance, "异常: ${e.message}")
@@ -164,9 +149,7 @@ class VwarpService : Service() {
             try {
                 process.destroy()
                 Thread.sleep(100)
-                if (process.isAlive) {
-                    process.destroyForcibly()
-                }
+                if (process.isAlive) process.destroyForcibly()
             } catch (e: Exception) {
                 Log.e(TAG, "Stop error", e)
             }
@@ -176,15 +159,14 @@ class VwarpService : Service() {
     }
 
     private fun stopAllInstances() {
-        val instances = processes.keys.toList()
-        instances.forEach { stopInstance(it) }
-        sendLog("system", "所有实例已停止")
+        processes.keys.toList().forEach { stopInstance(it) }
+        sendLog("system", "全部已停止")
     }
 
-    // 关键修复：添加 setPackage 确保广播能被 NOT_EXPORTED 的接收器收到
+    // 关键修复：设置包名确保广播能被 NOT_EXPORTED 接收器收到
     private fun sendLog(instance: String, line: String) {
         val intent = Intent(LOG_ACTION).apply {
-            setPackage(packageName)  // 必须设置包名！
+            setPackage(packageName)  // 必须设置！
             putExtra("line", line)
             putExtra("instance", instance)
         }
@@ -206,11 +188,12 @@ class VwarpService : Service() {
 
     private fun createNotification(text: String): Notification {
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+            this, 0, Intent(this, MainActivity::class.java),
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setContentTitle("Vwarp Proxy")
+            .setContentTitle("Vwarp")
             .setContentText(text)
             .setContentIntent(pendingIntent)
             .setOngoing(true)

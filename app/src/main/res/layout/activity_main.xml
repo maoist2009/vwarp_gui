@@ -1,241 +1,334 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:orientation="vertical">
 
-    <!-- 标题栏 -->
+    <!-- 控制面板（可滚动） -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <!-- 标题 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Vwarp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/btn_help"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_help"
+                    app:tint="?attr/colorPrimary" />
+            </LinearLayout>
+
+            <!-- 模式选择 -->
+            <RadioGroup
+                android:id="@+id/rg_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+                <RadioButton
+                    android:id="@+id/rb_simple"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="简单"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rb_cmdline"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="命令行"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rb_config"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="配置"
+                    android:textSize="13sp" />
+            </RadioGroup>
+
+            <!-- 简单模式 -->
+            <LinearLayout
+                android:id="@+id/panel_simple"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:hint="绑定地址">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_bind"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="127.0.0.1:1077"
+                        android:textSize="14sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:hint="端点">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_endpoint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="162.159.198.2"
+                        android:textSize="14sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:hint="前置代理 (可选)">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_proxy"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- 命令行模式 -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/panel_cmdline"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:hint="命令行参数"
+                android:visibility="gone">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_cmdline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="--masque --bind 127.0.0.1:1077 -e 162.159.198.2"
+                    android:textSize="13sp"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- 配置模式 -->
+            <LinearLayout
+                android:id="@+id/panel_config"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp"
+                android:visibility="gone">
+
+                <Spinner
+                    android:id="@+id/spinner_config"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1" />
+
+                <Button
+                    android:id="@+id/btn_edit_config"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="编辑"
+                    android:textSize="13sp"
+                    android:minWidth="48dp" />
+
+                <Button
+                    android:id="@+id/btn_new_config"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="新建"
+                    android:textSize="13sp"
+                    android:minWidth="48dp" />
+            </LinearLayout>
+
+            <!-- 实例管理 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <Spinner
+                    android:id="@+id/spinner_instance"
+                    android:layout_width="90dp"
+                    android:layout_height="44dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="6dp"
+                    android:hint="实例名">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_instance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="default"
+                        android:textSize="14sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_delete_instance"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@android:drawable/ic_menu_delete"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#D32F2F" />
+            </LinearLayout>
+
+            <!-- 控制按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+                <Button
+                    android:id="@+id/btn_start"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="启动"
+                    android:textSize="14sp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/btn_stop"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="停止"
+                    android:textSize="14sp"
+                    android:layout_marginHorizontal="4dp" />
+
+                <Button
+                    android:id="@+id/btn_stop_all"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="全停"
+                    android:textSize="14sp"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <!-- 状态 -->
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#E0E0E0"
+                android:padding="8dp"
+                android:text="状态: 未运行"
+                android:textColor="#000000"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tv_running"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="运行中: 无"
+                android:textSize="11sp"
+                android:textColor="#888888"
+                android:paddingTop="2dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 日志头 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_height="40dp"
+        android:paddingHorizontal="10dp"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:background="#1A1A1A">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Vwarp 控制面板"
-            android:textSize="18sp"
+            android:text="日志"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
-        <ImageButton
-            android:id="@+id/btn_help"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_help"
-            android:contentDescription="帮助"
-            app:tint="?attr/colorPrimary" />
+        <Button
+            android:id="@+id/btn_clear_log"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="清空"
+            android:textColor="#4CAF50"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_save_log"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="保存"
+            android:textColor="#4CAF50"
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- 运行模式 -->
-    <RadioGroup
-        android:id="@+id/rg_mode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-        <RadioButton android:id="@+id/rb_simple" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="简单" />
-        <RadioButton android:id="@+id/rb_cmdline" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="命令行" />
-        <RadioButton android:id="@+id/rb_config" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="配置" />
-    </RadioGroup>
-
-    <!-- 简单模式 -->
-    <LinearLayout
-        android:id="@+id/panel_simple"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_bind"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="绑定地址"
-                android:text="127.0.0.1:1077"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_endpoint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="端点地址"
-                android:text="162.159.198.2"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_proxy"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="前置代理 (可选)"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-    </LinearLayout>
-
-    <!-- 命令行模式 -->
-    <LinearLayout
-        android:id="@+id/panel_cmdline"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone">
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_cmdline"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="命令行参数"
-                android:text="--masque --bind 127.0.0.1:1077 -e 162.159.198.2"
-                android:textSize="13sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-    </LinearLayout>
-
-    <!-- 配置模式 -->
-    <LinearLayout
-        android:id="@+id/panel_config"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:visibility="gone">
-        <Spinner android:id="@+id/spinner_config" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
-        <Button android:id="@+id/btn_edit_config" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="编辑" android:minWidth="48dp" />
-        <Button android:id="@+id/btn_new_config" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="新建" android:minWidth="48dp" />
-    </LinearLayout>
-
-    <!-- 实例管理 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="8dp">
-
-        <Spinner
-            android:id="@+id/spinner_instance"
-            android:layout_width="100dp"
-            android:layout_height="48dp" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginHorizontal="4dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_instance"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="实例名"
-                android:text="default"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <ImageButton
-            android:id="@+id/btn_delete_instance"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@android:drawable/ic_menu_delete"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="删除实例"
-            app:tint="#D32F2F" />
-    </LinearLayout>
-
-    <!-- 控制按钮 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <Button android:id="@+id/btn_start" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="启动" android:layout_marginEnd="4dp" />
-        <Button android:id="@+id/btn_stop" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="停止" android:layout_marginHorizontal="4dp" />
-        <Button android:id="@+id/btn_stop_all" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="全停" android:layout_marginStart="4dp" />
-    </LinearLayout>
-
-    <!-- 状态 -->
-    <TextView
-        android:id="@+id/tv_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="#E0E0E0"
-        android:padding="8dp"
-        android:text="状态: 未运行"
-        android:textColor="#000000"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/tv_running"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="运行中: 无"
-        android:textSize="12sp"
-        android:textColor="#888888" />
-
-    <!-- 日志头 - 固定高度，不使用 weight -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:gravity="center_vertical"
-        android:layout_marginTop="4dp">
-        
-        <TextView 
-            android:layout_width="0dp" 
-            android:layout_height="wrap_content" 
-            android:layout_weight="1" 
-            android:text="日志" 
-            android:textStyle="bold" />
-        
-        <Button 
-            android:id="@+id/btn_clear_log" 
-            style="@style/Widget.MaterialComponents.Button.TextButton" 
-            android:layout_width="wrap_content" 
-            android:layout_height="match_parent" 
-            android:text="清空" 
-            android:minWidth="60dp"
-            android:paddingHorizontal="8dp" />
-        
-        <Button 
-            android:id="@+id/btn_save_log" 
-            style="@style/Widget.MaterialComponents.Button.TextButton" 
-            android:layout_width="wrap_content" 
-            android:layout_height="match_parent" 
-            android:text="保存" 
-            android:minWidth="60dp"
-            android:paddingHorizontal="8dp" />
-    </LinearLayout>
-
-    <!-- 日志区 -->
-    <ScrollView
+    <!-- 日志区域 -->
+    <org.maoist2009.gui.vwarp.InterceptScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="#000000"
-        android:layout_marginTop="4dp">
+        android:fadeScrollbars="false"
+        android:scrollbars="vertical">
+
         <TextView
             android:id="@+id/tv_log"
             android:layout_width="match_parent"
@@ -245,5 +338,6 @@
             android:textSize="11sp"
             android:typeface="monospace"
             android:textIsSelectable="true" />
-    </ScrollView>
+    </org.maoist2009.gui.vwarp.InterceptScrollView>
+
 </LinearLayout>
