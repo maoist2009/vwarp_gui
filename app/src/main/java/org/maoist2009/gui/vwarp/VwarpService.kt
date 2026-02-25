@@ -34,6 +34,10 @@ class VwarpService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // 关键修复：Android 7.0 (API 24-25) 要求 startForeground 必须在 onStartCommand 返回前调用
+        // 且不能有任何条件分支，否则会导致 RemoteServiceException 崩溃
+        ensureForeground()
+
         val action = intent?.getStringExtra("action") ?: "start"
         val instance = intent?.getStringExtra("instance") ?: "default"
 
@@ -41,13 +45,6 @@ class VwarpService : Service() {
             if (instance == "__ALL__") stopAllInstances() else stopInstance(instance)
             if (processes.isEmpty()) stopSelf()
             return START_NOT_STICKY
-        }
-
-        val notification = createNotification("Vwarp 运行中")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFY_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForeground(NOTIFY_ID, notification)
         }
 
         val mode = intent?.getIntExtra("mode", 0) ?: 0
@@ -58,6 +55,20 @@ class VwarpService : Service() {
         if (args != null) startVwarpProcess(instance, args)
 
         return START_STICKY
+    }
+
+    private var isForegroundStarted = false
+
+    private fun ensureForeground() {
+        if (!isForegroundStarted) {
+            val notification = createNotification("Vwarp 运行中")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFY_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIFY_ID, notification)
+            }
+            isForegroundStarted = true
+        }
     }
 
     private fun buildArgs(intent: Intent?, mode: Int, instance: String): List<String>? {
